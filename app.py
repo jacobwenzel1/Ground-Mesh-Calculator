@@ -9,17 +9,25 @@
 
 import matplotlib.pyplot as plt
 import os
+import sys
 
 def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
     # Convert wire length to inches for consistency
     wire_length_in = wire_length_ft * 12
     
-    # Subtract total overhang (both sides) from total length
+    # Calculate effective length after overhang
     effective_length = wire_length_in - (2 * overhang_in)
+    
+    # Additional validation
+    if effective_length <= 0:
+        raise ValueError("Effective length (wire length minus total overhang) must be positive.")
     
     # Assume a roughly square grid to estimate horizontal and vertical wire counts
     horizontal_wires = int((total_wires + 1) // 2)  # Roughly half, rounded up
     vertical_wires = total_wires - horizontal_wires
+    
+    if vertical_wires < 1 or horizontal_wires < 1:
+        raise ValueError("Not enough wires to form a grid (need at least 1 horizontal and 1 vertical).")
     
     # Calculate spacing between wires (in inches)
     if horizontal_wires > 1:
@@ -34,10 +42,9 @@ def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
     
     # Calculate positions of vertical wires along the top horizontal wire
     vertical_positions = []
-    if vertical_wires > 0:
-        for i in range(vertical_wires):
-            position = overhang_in + (i * vertical_spacing)
-            vertical_positions.append(position)
+    for i in range(vertical_wires):
+        position = overhang_in + (i * vertical_spacing)
+        vertical_positions.append(position)
     
     # Prepare text output
     output = (
@@ -56,29 +63,32 @@ def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
         output += f"  Vertical wire {i}: {pos:.2f} inches\n"
     
     # Generate image
-    plt.figure(figsize=(10, 2))  # Width adjusted for visibility, height minimal
-    plt.plot([0, wire_length_in], [0, 0], 'b-', linewidth=2, label='Top Horizontal Wire')  # Horizontal rod
+    plt.figure(figsize=(10, 2))
+    plt.plot([0, wire_length_in], [0, 0], 'b-', linewidth=2, label='Top Horizontal Wire')
     for pos in vertical_positions:
-        plt.plot([pos, pos], [-0.5, 0.5], 'r-', linewidth=2)  # Vertical wire stubs
+        plt.plot([pos, pos], [-0.5, 0.5], 'r-', linewidth=2)
         plt.text(pos, 0.6, f'{pos:.2f} in', ha='center', va='bottom', fontsize=8)
     
     # Add overhang markers
     plt.plot([overhang_in, overhang_in], [-0.3, 0.3], 'g--', label='Overhang Boundary')
     plt.plot([wire_length_in - overhang_in, wire_length_in - overhang_in], [-0.3, 0.3], 'g--')
     
-    plt.title("Top Horizontal Wire with Vertical Wire Positions", pad=15)  # Add padding to title
+    plt.title("Top Horizontal Wire with Vertical Wire Positions", pad=15)
     plt.xlabel("Distance (inches)")
-    plt.yticks([])  # Hide y-axis ticks as it's just a line
+    plt.yticks([])
     plt.legend()
     plt.grid(True, which='both', linestyle='--', alpha=0.5)
-    plt.tight_layout(pad=2.0)  # Increase padding for more space
+    plt.tight_layout(pad=2.0)
     
-    # Save the image
+    # Save and open the image
     image_path = "grid_layout.png"
-    plt.savefig(image_path)
-    plt.close()
+    try:
+        plt.savefig(image_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to save image: {e}")
+    finally:
+        plt.close()  # Ensure plot is closed even if save fails
     
-    # Open the image with the default viewer
     try:
         if os.name == 'nt':  # Windows
             os.startfile(image_path)
@@ -92,23 +102,29 @@ def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
     
     return output
 
-# Get user input
+# Get and validate user input
 try:
     total_wires = int(input("Enter the total number of wires: "))
-    wire_length_ft = float(input("Enter the length of each wire in feet: "))
-    overhang_in = float(input("Enter the overhang length in inches: "))
+    if total_wires <= 0:
+        raise ValueError("Total number of wires must be a positive integer.")
     
-    # Validate inputs
-    if total_wires < 2:
-        print("Error: You need at least 2 wires to form a grid.")
-    elif wire_length_ft <= 0:
-        print("Error: Wire length must be positive.")
-    elif overhang_in < 0 or (overhang_in * 2) >= (wire_length_ft * 12):
-        print("Error: Overhang must be non-negative and less than half the wire length.")
-    else:
-        # Calculate and display result
-        result = calculate_grid_spacing(total_wires, wire_length_ft, overhang_in)
-        print("\n" + result)
+    wire_length_ft = float(input("Enter the length of each wire in feet: "))
+    if wire_length_ft <= 0:
+        raise ValueError("Wire length must be a positive number.")
+    
+    overhang_in = float(input("Enter the overhang length in inches: "))
+    if overhang_in < 0:
+        raise ValueError("Overhang length cannot be negative.")
+    if (overhang_in * 2) >= (wire_length_ft * 12):
+        raise ValueError("Total overhang (both sides) must be less than the wire length.")
+    
+    # Calculate and display result
+    result = calculate_grid_spacing(total_wires, wire_length_ft, overhang_in)
+    print("\n" + result)
 
-except ValueError:
-    print("Error: Please enter valid numbers for all inputs.")
+except ValueError as ve:
+    print(f"Error: {ve}")
+except RuntimeError as re:
+    print(f"Error: {re}")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
