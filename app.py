@@ -1,54 +1,69 @@
-# Author: Jacob Wenzel
-# Date: 02.21.25
-# File: app.py
+def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
+    # Convert wire length to inches for consistency
+    wire_length_in = wire_length_ft * 12
+    
+    # Subtract total overhang (both sides) from total length
+    effective_length = wire_length_in - (2 * overhang_in)
+    
+    # Assume a roughly square grid to estimate horizontal and vertical wire counts
+    horizontal_wires = int((total_wires + 1) // 2)  # Roughly half, rounded up
+    vertical_wires = total_wires - horizontal_wires
+    
+    # Calculate spacing between wires (in inches)
+    if horizontal_wires > 1:
+        horizontal_spacing = effective_length / (horizontal_wires - 1)
+    else:
+        horizontal_spacing = 0  # No spacing if only 1 wire
+    
+    if vertical_wires > 1:
+        vertical_spacing = effective_length / (vertical_wires - 1)
+    else:
+        vertical_spacing = 0  # No spacing if only 1 wire
+    
+    # Calculate positions of vertical wires along the top horizontal wire
+    vertical_positions = []
+    if vertical_wires > 0:
+        # Start at the left edge after overhang
+        for i in range(vertical_wires):
+            position = overhang_in + (i * vertical_spacing)
+            vertical_positions.append(position)
+    
+    # Prepare output
+    output = (
+        f"Grid Layout Summary:\n"
+        f"Total Wires: {total_wires}\n"
+        f"Wire Length: {wire_length_ft} feet\n"
+        f"Overhang per side: {overhang_in} inches\n"
+        f"Horizontal Wires: {horizontal_wires}\n"
+        f"Vertical Wires: {vertical_wires}\n"
+        f"Spacing between horizontal wires: {horizontal_spacing:.2f} inches\n"
+        f"Spacing between vertical wires: {vertical_spacing:.2f} inches\n"
+        f"Vertical wire positions along top horizontal wire (from left edge):\n"
+    )
+    
+    # Add positions to output
+    for i, pos in enumerate(vertical_positions, 1):
+        output += f"  Vertical wire {i}: {pos:.2f} inches\n"
+    
+    return output
 
-# Objective:
-# To determine ground grid mesh dimensions. Given inputs for 
-# Wire length, number of wires, and overhand length, the output
-# results in the dimensions needed.
+# Get user input
+try:
+    total_wires = int(input("Enter the total number of wires: "))
+    wire_length_ft = float(input("Enter the length of each wire in feet: "))
+    overhang_in = float(input("Enter the overhang length in inches: "))
+    
+    # Validate inputs
+    if total_wires < 2:
+        print("Error: You need at least 2 wires to form a grid.")
+    elif wire_length_ft <= 0:
+        print("Error: Wire length must be positive.")
+    elif overhang_in < 0 or (overhang_in * 2) >= (wire_length_ft * 12):
+        print("Error: Overhang must be non-negative and less than half the wire length.")
+    else:
+        # Calculate and display result
+        result = calculate_grid_spacing(total_wires, wire_length_ft, overhang_in)
+        print("\n" + result)
 
-
-
-def calculate_grid_dimensions():
-    # Get user inputs
-    num_wires = int(input("Enter the number of wires per side (horizontal and vertical): "))
-    wire_length = float(input("Enter the length of each wire (in inches): "))
-    overhang = float(input("Enter the overhang on each side (in inches): "))
-
-    # Calculate total overhang (both sides)
-    total_overhang = 2 * overhang
-
-    # Total grid size (width and height)
-    total_grid_size = wire_length + total_overhang
-
-    # Inner grid size (distance from first to last intersection)
-    inner_grid_size = wire_length
-
-    # Number of spaces between wires (one less than number of wires)
-    num_spaces = num_wires - 1
-
-    # Spacing between wires (intersection to intersection)
-    spacing = inner_grid_size / num_spaces if num_spaces > 0 else 0
-
-    # Calculate wire positions (intersections relative to grid edge)
-    wire_positions = []
-    for i in range(num_wires):
-        position = overhang + (i * spacing)
-        wire_positions.append(position)
-
-    # Output results
-    print("\n--- Grid Dimensions ---")
-    print(f"Total Grid Size: {total_grid_size:.2f} inches x {total_grid_size:.2f} inches")
-    print(f"Inner Grid Size (first to last intersection): {inner_grid_size:.2f} inches x {inner_grid_size:.2f} inches")
-    print(f"Spacing Between Wires: {spacing:.2f} inches")
-    print(f"Overhang: {overhang:.2f} inches on each side")
-    print(f"Number of Intersections: {num_wires} x {num_wires} = {num_wires * num_wires}")
-
-    print("\n--- Wire Positions (Horizontal and Vertical) ---")
-    for i, pos in enumerate(wire_positions, 1):
-        print(f"Wire {i}: Intersection at {pos:.2f} inches (rod extends from {pos-overhang:.2f} to {pos-overhang+wire_length:.2f} inches)")
-
-# Run the program
-if __name__ == "__main__":
-    print("Copper Mesh Grid Calculator")
-    calculate_grid_dimensions()
+except ValueError:
+    print("Error: Please enter valid numbers for all inputs.")
