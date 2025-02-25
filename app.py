@@ -1,3 +1,15 @@
+# Author: Jacob Wenzel
+# Date: 02.21.25
+# File: app.py
+
+# Objective:
+# To determine ground grid mesh dimensions. Given inputs for 
+# Wire length, number of wires, and overhand length, the output
+# results in the dimensions needed.
+
+import matplotlib.pyplot as plt
+import os
+
 def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
     # Convert wire length to inches for consistency
     wire_length_in = wire_length_ft * 12
@@ -23,12 +35,11 @@ def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
     # Calculate positions of vertical wires along the top horizontal wire
     vertical_positions = []
     if vertical_wires > 0:
-        # Start at the left edge after overhang
         for i in range(vertical_wires):
             position = overhang_in + (i * vertical_spacing)
             vertical_positions.append(position)
     
-    # Prepare output
+    # Prepare text output
     output = (
         f"Grid Layout Summary:\n"
         f"Total Wires: {total_wires}\n"
@@ -41,9 +52,43 @@ def calculate_grid_spacing(total_wires, wire_length_ft, overhang_in):
         f"Vertical wire positions along top horizontal wire (from left edge):\n"
     )
     
-    # Add positions to output
     for i, pos in enumerate(vertical_positions, 1):
         output += f"  Vertical wire {i}: {pos:.2f} inches\n"
+    
+    # Generate image
+    plt.figure(figsize=(10, 2))  # Width adjusted for visibility, height minimal
+    plt.plot([0, wire_length_in], [0, 0], 'b-', linewidth=2, label='Top Horizontal Wire')  # Horizontal rod
+    for pos in vertical_positions:
+        plt.plot([pos, pos], [-0.5, 0.5], 'r-', linewidth=2)  # Vertical wire stubs
+        plt.text(pos, 0.6, f'{pos:.2f} in', ha='center', va='bottom', fontsize=8)
+    
+    # Add overhang markers
+    plt.plot([overhang_in, overhang_in], [-0.3, 0.3], 'g--', label='Overhang Boundary')
+    plt.plot([wire_length_in - overhang_in, wire_length_in - overhang_in], [-0.3, 0.3], 'g--')
+    
+    plt.title("Top Horizontal Wire with Vertical Wire Positions", pad=15)  # Add padding to title
+    plt.xlabel("Distance (inches)")
+    plt.yticks([])  # Hide y-axis ticks as it's just a line
+    plt.legend()
+    plt.grid(True, which='both', linestyle='--', alpha=0.5)
+    plt.tight_layout(pad=2.0)  # Increase padding for more space
+    
+    # Save the image
+    image_path = "grid_layout.png"
+    plt.savefig(image_path)
+    plt.close()
+    
+    # Open the image with the default viewer
+    try:
+        if os.name == 'nt':  # Windows
+            os.startfile(image_path)
+        elif os.name == 'posix':  # MacOS or Linux
+            opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
+            os.system(f"{opener} {image_path}")
+    except Exception as e:
+        output += f"\nImage saved as '{image_path}' but could not be opened automatically: {e}"
+    else:
+        output += f"\nImage saved and opened as '{image_path}'."
     
     return output
 
